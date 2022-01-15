@@ -52,7 +52,6 @@ using UnityEngine;
 
         void IConnectionManager.OnMessage(IntPtr data, int size, long messageNum, long recvTime, int channel)
         {
-            Debug.Log("IConnectionManager.OnMessage");
             byte[] payload = new byte[size];
             Marshal.Copy(data, payload, 0, size);
             // PABC - Change "size - 1" to "size" to fix error: "[Netcode] Received a message that claimed a size larger than the packet, ending early!"
