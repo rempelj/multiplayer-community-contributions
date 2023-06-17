@@ -273,11 +273,6 @@
             Return true if IP is mapped IPv4
             </summary>
         </member>
-        <member name="P:Steamworks.Data.NetAddress.IsFakeIPv4">
-            <summary>
-            Return true if IP is a fake IPv4 for Steam Datagram Relay
-            </summary>
-        </member>
         <member name="P:Steamworks.Data.NetAddress.IsLocalHost">
             <summary>
             Return true if this identity is localhost.  (Either IPv6 ::1, or IPv4 127.0.0.1)
@@ -2066,19 +2061,15 @@
             </summary>
         </member>
         <member name="M:Steamworks.SteamNetworkingSockets.RequestFakeIP(System.Int32)">
-             <summary>
-             Begin asynchronous process of allocating a fake IPv4 address that other
-             peers can use to contact us via P2P. IP addresses returned by this
-             function are globally unique for a given appid.
-            
-             For gameservers, you *must* call this after initializing the SDK but before
-             beginning login.  Steam needs to know in advance that FakeIP will be used.
-             </summary>
+            <summary>
+            Return info about the FakeIP and port that we have been assigned, if any.
+            </summary>
         </member>
         <member name="M:Steamworks.SteamNetworkingSockets.GetFakeIP(System.Int32,Steamworks.Data.NetAddress@)">
             <summary>
-            Return info about the FakeIP and port that we have been assigned, if any.
-            
+            Begin asynchronous process of allocating a fake IPv4 address that other
+            peers can use to contact us via P2P. IP addresses returned by this
+            function are globally unique for a given appid.
             </summary>
         </member>
         <member name="M:Steamworks.SteamNetworkingSockets.CreateRelaySocketFakeIP``1(System.Int32)">
