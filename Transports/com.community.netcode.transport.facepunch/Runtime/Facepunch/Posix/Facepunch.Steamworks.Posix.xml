@@ -874,6 +874,17 @@
             Remove this server from our favourite list
             </summary>
         </member>
+        <member name="M:Steamworks.Data.UgcAdditionalPreview.GetItemPreviewType">
+            <summary>
+            Flags that specify the type of preview an item has:
+            Image = 0,
+            YouTubeVideo = 1,
+            Sketchfab = 2,
+            EnvironmentMap_HorizontalCross = 3,
+            EnvironmentMap_LatLong = 4,
+            ReservedMax = 255
+            </summary>
+        </member>
         <member name="M:Steamworks.ISteamInventory.GetResultStatus(Steamworks.Data.SteamInventoryResult_t)">
             <summary>
             Find out the status of an asynchronous inventory result handle.
@@ -972,34 +983,6 @@
         <member name="M:Steamworks.ConnectionManager.OnDisconnected(Steamworks.Data.ConnectionInfo)">
             <summary>
             The connection has been closed remotely or disconnected locally. Check data.State for details.
-            </summary>
-        </member>
-        <member name="M:Steamworks.ConnectionManager.SendMessages(Steamworks.Data.Connection[],System.Int32,System.IntPtr,System.Int32,Steamworks.Data.SendType,Steamworks.Result[])">
-            <summary>
-            Sends a message to multiple connections.
-            </summary>
-            <param name="connections">The connections to send the message to.</param>
-            <param name="connectionCount">The number of connections to send the message to, to allow reusing the connections array.</param>
-            <param name="ptr">Pointer to the message data.</param>
-            <param name="size">Size of the message data.</param>
-            <param name="sendType">Flags to control delivery of the message.</param>
-            <param name="results">An optional array to hold the results of sending the messages for each connection.</param>
-        </member>
-        <member name="M:Steamworks.ConnectionManager.SendMessages(Steamworks.Data.Connection[],System.Int32,System.Byte[],Steamworks.Data.SendType,Steamworks.Result[])">
-            <summary>
-            Ideally should be using an IntPtr version unless you're being really careful with the byte[] array and 
-            you're not creating a new one every frame (like using .ToArray())
-            </summary>
-        </member>
-        <member name="M:Steamworks.ConnectionManager.SendMessages(Steamworks.Data.Connection[],System.Int32,System.Byte[],System.Int32,System.Int32,Steamworks.Data.SendType,Steamworks.Result[])">
-            <summary>
-            Ideally should be using an IntPtr version unless you're being really careful with the byte[] array and 
-            you're not creating a new one every frame (like using .ToArray())
-            </summary>
-        </member>
-        <member name="M:Steamworks.ConnectionManager.SendMessages(Steamworks.Data.Connection[],System.Int32,System.String,Steamworks.Data.SendType,Steamworks.Result[])">
-            <summary>
-            This creates a ton of garbage - so don't do anything with this beyond testing!
             </summary>
         </member>
         <member name="M:Steamworks.IConnectionManager.OnConnecting(Steamworks.Data.ConnectionInfo)">
@@ -1126,7 +1109,7 @@
             Check if user borrowed this game via Family Sharing, If true, call GetAppOwner() to get the lender SteamID
             </summary>
         </member>
-        <member name="P:Steamworks.SteamApps.IsLowViolence">
+        <member name="P:Steamworks.SteamApps.IsLowVoilence">
             <summary>
             Checks if the license owned by the user provides low violence depots.
             Low violence depots are useful for copies sold in countries that have content restrictions
@@ -1338,11 +1321,6 @@
             ListenForFriendsMessages to recieve this. (friend, msgtype, message)
             </summary>
         </member>
-        <member name="E:Steamworks.SteamFriends.OnClanChatMessage">
-            <summary>
-            Called when a chat message has been received in a Steam group chat that we are in. Associated Functions: JoinClanChatRoom. (friend, msgtype, message)
-            </summary>
-        </member>
         <member name="E:Steamworks.SteamFriends.OnPersonaStateChange">
             <summary>
             called when a friends' status changes
@@ -1408,7 +1386,7 @@
             "friendrequestignore" - Opens the overlay in minimal mode prompting the user to ignore an incoming friend invite.
             </summary>
         </member>
-        <member name="M:Steamworks.SteamFriends.OpenStoreOverlay(Steamworks.AppId,Steamworks.OverlayToStoreFlag)">
+        <member name="M:Steamworks.SteamFriends.OpenStoreOverlay(Steamworks.AppId)">
             <summary>
             Activates the Steam Overlay to the Steam store page for the provided app.
             </summary>
@@ -1794,15 +1772,6 @@
             NOTE: The first packet send may be delayed as the NAT-traversal code runs.
             </summary>
         </member>
-        <member name="P:Steamworks.SteamNetworkingSockets.Identity">
-            <summary>
-            Get the identity assigned to this interface.
-            E.g. on Steam, this is the user's SteamID, or for the gameserver interface, the SteamID assigned
-            to the gameserver.  Returns false and sets the result to an invalid identity if we don't know
-            our identity yet.  (E.g. GameServer has not logged in.  On Steam, the user will know their SteamID
-            even if they are not signed into Steam.)
-            </summary>
-        </member>
         <member name="M:Steamworks.SteamNetworkingSockets.CreateNormalSocket``1(Steamworks.Data.NetAddress)">
             <summary>
             Creates a "server" socket that listens for clients to connect to by calling
@@ -1852,11 +1821,6 @@
             </summary>
         </member>
         <member name="M:Steamworks.SteamNetworkingSockets.ConnectRelay``1(Steamworks.SteamId,System.Int32)">
-            <summary>
-            Connect to a relay server
-            </summary>
-        </member>
-        <member name="M:Steamworks.SteamNetworkingSockets.ConnectRelay(Steamworks.SteamId,System.Int32,Steamworks.IConnectionManager)">
             <summary>
             Connect to a relay server
             </summary>
@@ -1965,31 +1929,6 @@
             If this is reached SendMessage will return LimitExceeded.
             Default is 524288 bytes (512k)
             </summary>
-        </member>
-        <member name="P:Steamworks.SteamNetworkingUtils.AllowWithoutAuth">
-             <summary>
-             Don't automatically fail IP connections that don't have
-             strong auth.  On clients, this means we will attempt the connection even if
-             we don't know our identity or can't get a cert.  On the server, it means that
-             we won't automatically reject a connection due to a failure to authenticate.
-             (You can examine the incoming connection and decide whether to accept it.)
-            
-             This is a dev configuration value, and you should not let users modify it in
-             production.
-             </summary>
-        </member>
-        <member name="P:Steamworks.SteamNetworkingUtils.Unencrypted">
-             <summary>
-             Allow unencrypted (and unauthenticated) communication.
-             0: Not allowed (the default)
-             1: Allowed, but prefer encrypted
-             2: Allowed, and preferred
-             3: Required.  (Fail the connection if the peer requires encryption.)
-            
-             This is a dev configuration value, since its purpose is to disable encryption.
-             You should not let users modify it in production.  (But note that it requires
-             the peer to also modify their value in order for encryption to be disabled.)
-             </summary>
         </member>
         <member name="P:Steamworks.SteamNetworkingUtils.DebugLevel">
             <summary>
@@ -2538,17 +2477,6 @@
             <summary>
             Utility function to fetch a single item. Internally this uses Ugc.FileQuery -
             which you can use to query multiple items if you need to.
-            </summary>
-        </member>
-        <member name="M:Steamworks.SteamUGC.SuspendDownloads">
-            <summary>
-            Suspends all workshop downloads.
-            Downloads will be suspended until you resume them by calling <see cref="M:Steamworks.SteamUGC.ResumeDownloads"/> or when the game ends.
-            </summary>
-        </member>
-        <member name="M:Steamworks.SteamUGC.ResumeDownloads">
-            <summary>
-            Resumes all workshop downloads
             </summary>
         </member>
         <member name="T:Steamworks.SteamUser">
@@ -3460,11 +3388,6 @@
         <member name="P:Steamworks.Ugc.Editor.NewMicrotransactionFile">
             <summary>
             Workshop item that is meant to be voted on for the purpose of selling in-game
-            </summary>
-        </member>
-        <member name="P:Steamworks.Ugc.Editor.NewGameManagedFile">
-            <summary>
-            Workshop item that is meant to be managed by the game. It is queryable by the API, but isn't visible on the web browser.
             </summary>
         </member>
         <member name="M:Steamworks.Ugc.Editor.AddKeyValueTag(System.String,System.String)">
