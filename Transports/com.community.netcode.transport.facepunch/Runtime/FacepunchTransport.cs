@@ -13,30 +13,52 @@ namespace Netcode.Transports.Facepunch
 
     public class FacepunchTransport : NetworkTransport, IConnectionManager, ISocketManager
     {
-        private SocketManager socketManager;
-        private Dictionary<ulong, FacepunchConnectionManager> connectionManagers;
-        private Dictionary<ulong, Client> connectedClients;
-        private static ulong nextClientId = 0;
-
-        [Space]
-        [Tooltip("The Steam App ID of your game. Technically you're not allowed to use 480, but Valve doesn't do anything about it so it's fine for testing purposes.")]
-        [SerializeField] private uint steamAppId = 480;
-
-        [Tooltip("The Steam ID of the user targeted when joining as a client.")]
-        [SerializeField] public ulong targetSteamId;
-
-        [Header("Info")]
-        [ReadOnly]
-        [Tooltip("When in play mode, this will display your Steam ID.")]
-        [SerializeField] private ulong userSteamId;
-
-        private LogLevel LogLevel => NetworkManager.Singleton.LogLevel;
-
         private class Client
         {
             public SteamId steamId;
             public SocketConnection connection;
         }
+
+        private SocketManager socketManager;
+        private Dictionary<ulong, FacepunchConnectionManager> connectionManagers;
+        private Dictionary<ulong, Client> connectedClients;
+
+        [Space]
+        [Tooltip(
+            "The Steam App ID of your game. Technically you're not allowed to use 480, but Valve doesn't do anything about it so it's fine for testing purposes.")]
+        [SerializeField]
+        private uint steamAppId = 480;
+
+        [Tooltip("The Steam ID of the user targeted when joining as a client.")] [SerializeField]
+        public ulong targetSteamId;
+
+        [Header("Info")] [ReadOnly] [Tooltip("When in play mode, this will display your Steam ID.")] [SerializeField]
+        private ulong userSteamId;
+
+        private LogLevel LogLevel => NetworkManager.Singleton.LogLevel;
+
+        #region Utility Methods
+
+        private IEnumerator InitSteamworks()
+        {
+            yield return new WaitUntil(() => SteamClient.IsValid);
+
+            SteamNetworkingUtils.InitRelayNetworkAccess();
+
+            if (LogLevel <= LogLevel.Developer)
+            {
+                Debug.Log($"[{nameof(FacepunchTransport)}] - Initialized access to Steam Relay Network.");
+            }
+
+            userSteamId = SteamClient.SteamId;
+
+            if (LogLevel <= LogLevel.Developer)
+            {
+                Debug.Log($"[{nameof(FacepunchTransport)}] - Fetched user Steam ID.");
+            }
+        }
+
+        #endregion
 
         #region MonoBehaviour Messages
 
@@ -49,7 +71,10 @@ namespace Netcode.Transports.Facepunch
             catch (Exception e)
             {
                 if (LogLevel <= LogLevel.Error)
-                    Debug.LogError($"[{nameof(FacepunchTransport)}] - Caught an exeption during initialization of Steam client: {e}");
+                {
+                    Debug.LogError(
+                        $"[{nameof(FacepunchTransport)}] - Caught an exeption during initialization of Steam client: {e}");
+                }
             }
             finally
             {
@@ -67,12 +92,6 @@ namespace Netcode.Transports.Facepunch
             SteamClient.Shutdown();
         }
 
-        private static ulong GetNextClientId()
-        {
-            nextClientId++;
-            return nextClientId;
-        }
-
         #endregion
 
         #region NetworkTransport Overrides
@@ -87,24 +106,31 @@ namespace Netcode.Transports.Facepunch
             }
 
             if (LogLevel <= LogLevel.Developer)
+            {
                 Debug.Log($"[{nameof(FacepunchTransport)}] - Disconnecting local client.");
+            }
         }
 
         public override void DisconnectRemoteClient(ulong clientId)
         {
-            if (connectedClients.TryGetValue(clientId, out Client user))
+            if (connectedClients.TryGetValue(clientId, out var user))
             {
                 user.connection.Close();
                 connectedClients.Remove(clientId);
 
                 if (LogLevel <= LogLevel.Developer)
+                {
                     Debug.Log($"[{nameof(FacepunchTransport)}] - Disconnecting remote client with ID {clientId}.");
+                }
             }
             else if (LogLevel <= LogLevel.Normal)
-                Debug.LogWarning($"[{nameof(FacepunchTransport)}] - Failed to disconnect remote client with ID {clientId}, client not connected.");
+            {
+                Debug.LogWarning(
+                    $"[{nameof(FacepunchTransport)}] - Failed to disconnect remote client with ID {clientId}, client not connected.");
+            }
         }
 
-        public override unsafe ulong GetCurrentRtt(ulong clientId)
+        public override ulong GetCurrentRtt(ulong clientId)
         {
             return 0;
         }
@@ -133,19 +159,24 @@ namespace Netcode.Transports.Facepunch
             try
             {
                 if (LogLevel <= LogLevel.Developer)
+                {
                     Debug.Log($"[{nameof(FacepunchTransport)}] - Shutting down.");
+                }
 
                 foreach (var connectionManager in connectionManagers.Values)
                 {
                     connectionManager.Close();
                 }
+
                 connectionManagers.Clear();
                 socketManager?.Close();
             }
             catch (Exception e)
             {
                 if (LogLevel <= LogLevel.Error)
+                {
                     Debug.LogError($"[{nameof(FacepunchTransport)}] - Caught an exception while shutting down: {e}");
+                }
             }
         }
 
@@ -153,24 +184,39 @@ namespace Netcode.Transports.Facepunch
         {
             var sendType = NetworkDeliveryToSendType(delivery);
 
-            byte* buffer = stackalloc byte[data.Count];
+            var buffer = stackalloc byte[data.Count];
             fixed (byte* pointer = data.Array)
+            {
                 Buffer.MemoryCopy(pointer + data.Offset, buffer, data.Count, data.Count);
+            }
 
             if (clientId == ServerClientId)
-                connectionManagers[ServerClientId]?.Connection.SendMessage((IntPtr)buffer, data.Count , sendType);
-            else if (connectedClients.TryGetValue(clientId, out Client user))
-                user.connection.SendMessage((IntPtr)buffer, data.Count, sendType);
+            {
+                connectionManagers[ServerClientId]?.Connection.SendMessage((IntPtr) buffer, data.Count, sendType);
+            }
+            else if (connectedClients.TryGetValue(clientId, out var client))
+            {
+                client.connection.SendMessage((IntPtr) buffer, data.Count, sendType);
+            }
+            else if (connectionManagers.TryGetValue(clientId, out var transport))
+            {
+                transport.Connection.SendMessage((IntPtr) buffer, data.Count, sendType);
+            }
             else if (LogLevel <= LogLevel.Normal)
-                Debug.LogWarning($"[{nameof(FacepunchTransport)}] - Failed to send packet to remote client with ID {clientId}, client not connected.");
+            {
+                Debug.LogWarning(
+                    $"[{nameof(FacepunchTransport)}] - Failed to send packet to remote client with ID {clientId}, client not connected.");
+            }
         }
 
-        public override NetworkEvent PollEvent(out ulong clientId, out ArraySegment<byte> payload, out float receiveTime)
+        public override NetworkEvent PollEvent(out ulong clientId, out ArraySegment<byte> payload,
+            out float receiveTime)
         {
             foreach (var connectionManager in connectionManagers.Values)
             {
                 connectionManager.Receive();
             }
+
             socketManager?.Receive();
 
             clientId = 0;
@@ -182,9 +228,11 @@ namespace Netcode.Transports.Facepunch
         public override bool StartClient()
         {
             if (LogLevel <= LogLevel.Developer)
+            {
                 Debug.Log($"[{nameof(FacepunchTransport)}] - Starting as client.");
+            }
 
-            var conn = new FacepunchConnectionManager(this, targetSteamId, ServerClientId);
+            var conn = new FacepunchConnectionManager(this, targetSteamId);
             connectionManagers.Add(ServerClientId, conn);
             conn.Connect();
 
@@ -194,7 +242,9 @@ namespace Netcode.Transports.Facepunch
         public override bool StartServer()
         {
             if (LogLevel <= LogLevel.Developer)
+            {
                 Debug.Log($"[{nameof(FacepunchTransport)}] - Starting as server.");
+            }
 
             socketManager = SteamNetworkingSockets.CreateRelaySocket<SocketManager>();
             socketManager.Interface = this;
@@ -208,35 +258,45 @@ namespace Netcode.Transports.Facepunch
         void IConnectionManager.OnConnecting(ConnectionInfo info)
         {
             if (LogLevel <= LogLevel.Developer)
+            {
                 Debug.Log($"[{nameof(FacepunchTransport)}] - Connecting with Steam user {info.Identity.SteamId}.");
+            }
         }
 
         void IConnectionManager.OnConnected(ConnectionInfo info)
         {
-            InvokeOnTransportEvent(NetworkEvent.Connect, GetClientId(info.Identity.SteamId), default, Time.realtimeSinceStartup);
+            InvokeOnTransportEvent(NetworkEvent.Connect, GetClientId(info.Identity.SteamId), default,
+                Time.realtimeSinceStartup);
 
             if (LogLevel <= LogLevel.Developer)
+            {
                 Debug.Log($"[{nameof(FacepunchTransport)}] - Connected with Steam user {info.Identity.SteamId}.");
+            }
         }
 
         void IConnectionManager.OnDisconnected(ConnectionInfo info)
         {
-            InvokeOnTransportEvent(NetworkEvent.Disconnect, GetClientId(info.Identity.SteamId), default, Time.realtimeSinceStartup);
+            InvokeOnTransportEvent(NetworkEvent.Disconnect, GetClientId(info.Identity.SteamId), default,
+                Time.realtimeSinceStartup);
 
             if (LogLevel <= LogLevel.Developer)
+            {
                 Debug.Log($"[{nameof(FacepunchTransport)}] - Disconnected Steam user {info.Identity.SteamId}.");
+            }
         }
 
         void IConnectionManager.OnMessage(IntPtr data, int size, long messageNum, long recvTime, int channel)
         {
             Debug.Log("IConnectionManager.OnMessage");
-            byte[] payload = new byte[size];
+            var payload = new byte[size];
             Marshal.Copy(data, payload, 0, size);
             // Rempelj - Change "size - 1" to "size" to fix error: "[Netcode] Received a message that claimed a size larger than the packet, ending early!"
-            InvokeOnTransportEvent(NetworkEvent.Data, ServerClientId, new ArraySegment<byte>(payload, 0, size), Time.realtimeSinceStartup);
+            InvokeOnTransportEvent(NetworkEvent.Data, ServerClientId, new ArraySegment<byte>(payload, 0, size),
+                Time.realtimeSinceStartup);
         }
-        
-        public void PublicInvokeOnTransportEvent(NetworkEvent eventType, ulong clientId, ArraySegment<byte> payload, float receiveTime)
+
+        public void PublicInvokeOnTransportEvent(NetworkEvent eventType, ulong clientId, ArraySegment<byte> payload,
+            float receiveTime)
         {
             InvokeOnTransportEvent(eventType, clientId, payload, receiveTime);
         }
@@ -248,7 +308,10 @@ namespace Netcode.Transports.Facepunch
         void ISocketManager.OnConnecting(SocketConnection connection, ConnectionInfo info)
         {
             if (LogLevel <= LogLevel.Developer)
-                Debug.Log($"[{nameof(FacepunchTransport)}] - Accepting connection from Steam user {info.Identity.SteamId}.");
+            {
+                Debug.Log(
+                    $"[{nameof(FacepunchTransport)}] - Accepting connection from Steam user {info.Identity.SteamId}.");
+            }
 
             connection.Accept();
         }
@@ -257,7 +320,7 @@ namespace Netcode.Transports.Facepunch
         {
             if (!connectedClients.ContainsKey(connection.Id))
             {
-                connectedClients.Add(connection.Id, new Client()
+                connectedClients.Add(connection.Id, new Client
                 {
                     connection = connection,
                     steamId = info.Identity.SteamId
@@ -266,10 +329,15 @@ namespace Netcode.Transports.Facepunch
                 InvokeOnTransportEvent(NetworkEvent.Connect, connection.Id, default, Time.realtimeSinceStartup);
 
                 if (LogLevel <= LogLevel.Developer)
+                {
                     Debug.Log($"[{nameof(FacepunchTransport)}] - Connected with Steam user {info.Identity.SteamId}.");
+                }
             }
             else if (LogLevel <= LogLevel.Normal)
-                Debug.LogWarning($"[{nameof(FacepunchTransport)}] - Failed to connect client with ID {connection.Id}, client already connected.");
+            {
+                Debug.LogWarning(
+                    $"[{nameof(FacepunchTransport)}] - Failed to connect client with ID {connection.Id}, client already connected.");
+            }
         }
 
         void ISocketManager.OnDisconnected(SocketConnection connection, ConnectionInfo info)
@@ -279,75 +347,70 @@ namespace Netcode.Transports.Facepunch
             InvokeOnTransportEvent(NetworkEvent.Disconnect, connection.Id, default, Time.realtimeSinceStartup);
 
             if (LogLevel <= LogLevel.Developer)
+            {
                 Debug.Log($"[{nameof(FacepunchTransport)}] - Disconnected Steam user {info.Identity.SteamId}");
+            }
         }
 
-        void ISocketManager.OnMessage(SocketConnection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
+        void ISocketManager.OnMessage(SocketConnection connection, NetIdentity identity, IntPtr data, int size,
+            long messageNum, long recvTime, int channel)
         {
-            byte[] payload = new byte[size];
+            var payload = new byte[size];
             Marshal.Copy(data, payload, 0, size);
-            InvokeOnTransportEvent(NetworkEvent.Data, connection.Id, new ArraySegment<byte>(payload, 0, size), Time.realtimeSinceStartup);
+            InvokeOnTransportEvent(NetworkEvent.Data, connection.Id, new ArraySegment<byte>(payload, 0, size),
+                Time.realtimeSinceStartup);
         }
 
         #endregion
 
-        #region Utility Methods
-
-        private IEnumerator InitSteamworks()
-        {
-            yield return new WaitUntil(() => SteamClient.IsValid);
-
-            SteamNetworkingUtils.InitRelayNetworkAccess();
-
-            if (LogLevel <= LogLevel.Developer)
-                Debug.Log($"[{nameof(FacepunchTransport)}] - Initialized access to Steam Relay Network.");
-
-            userSteamId = SteamClient.SteamId;
-
-            if (LogLevel <= LogLevel.Developer)
-                Debug.Log($"[{nameof(FacepunchTransport)}] - Fetched user Steam ID.");
-        }
-
-        #endregion
-        
         #region Hostless Peer
 
         public ulong ConnectHostlessPeer(SteamId steamId)
         {
-            ulong clientId = GetNextClientId();
-            Debug.Log($"FacepunchTransport.ConnectHostlessPeer - steamId: {steamId}, clientId: {clientId}");
-
-            var hostlessConnection = new FacepunchConnectionManager(this, steamId, clientId);
-            connectionManagers.Add(clientId, hostlessConnection);
+            var hostlessConnection = new FacepunchConnectionManager(this, steamId);
             hostlessConnection.Connect();
-
             var connection = hostlessConnection.Connection;
-            connectedClients.Add(clientId, new Client()
+            ulong transportId = connection.Id;
+
+            connectionManagers.Add(transportId, hostlessConnection);
+            /*
+            connectedClients.Add(clientId, new Client
             {
                 connection = connection,
                 steamId = steamId
             });
+            */
 
-            return clientId;
+            Debug.Log($"FacepunchTransport.ConnectHostlessPeer - steamId: {steamId}, transportId: {transportId}");
+
+            return transportId;
         }
 
         public void SetSteamAppID(uint id)
         {
             steamAppId = id;
         }
+
         public SteamId GetSteamId(ulong clientId)
         {
             if (clientId == NetworkManager.Singleton.LocalClientId)
             {
                 return userSteamId;
             }
-            else if (clientId == ServerClientId)
+
+            if (clientId == ServerClientId)
             {
                 return targetSteamId;
             }
-            else if (connectedClients.TryGetValue(clientId, out Client user))
+
+            if (connectedClients.TryGetValue(clientId, out var client))
             {
-                return user.steamId;
+                return client.steamId;
+            }
+
+            if (connectionManagers.TryGetValue(clientId, out var transport))
+            {
+                return transport.SteamId;
             }
 
             return new SteamId();
@@ -360,11 +423,13 @@ namespace Netcode.Transports.Facepunch
                 Debug.LogError("Invalid SteamId");
                 return ulong.MaxValue;
             }
-            else if (steamId == userSteamId)
+
+            if (steamId == userSteamId)
             {
                 return NetworkManager.Singleton.LocalClientId;
             }
-            else if (steamId == targetSteamId)
+
+            if (steamId == targetSteamId)
             {
                 return ServerClientId;
             }
@@ -381,7 +446,36 @@ namespace Netcode.Transports.Facepunch
             return ulong.MaxValue;
         }
 
+        public ulong GetTransportId(SteamId steamId)
+        {
+            if (!steamId.IsValid)
+            {
+                Debug.LogError("Invalid SteamId");
+                return ulong.MaxValue;
+            }
+
+            if (steamId == userSteamId)
+            {
+                return NetworkManager.Singleton.LocalClientId;
+            }
+
+            if (steamId == targetSteamId)
+            {
+                return ServerClientId;
+            }
+
+            foreach (var client in connectionManagers)
+            {
+                if (steamId == client.Value.SteamId)
+                {
+                    return client.Key;
+                }
+            }
+
+            Debug.LogError($"Failed to get transportId for steamID {steamId}");
+            return ulong.MaxValue;
+        }
+
         #endregion
-        
     }
 }
