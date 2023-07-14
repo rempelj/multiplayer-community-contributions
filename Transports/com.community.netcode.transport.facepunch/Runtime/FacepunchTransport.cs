@@ -384,7 +384,7 @@ namespace Netcode.Transports.Facepunch
             steamAppId = id;
         }
 
-        public SteamId GetSteamId(ulong clientId)
+        public SteamId GetSteamIdForConnection(ulong clientId)
         {
             if (clientId == NetworkManager.Singleton.LocalClientId)
             {
@@ -409,7 +409,33 @@ namespace Netcode.Transports.Facepunch
             return new SteamId();
         }
 
-        public ulong GetClientId(ulong steamId)
+        public SteamId GetSteamIdForAccount(ulong accountId)
+        {
+            if (accountId == SteamClient.SteamId.AccountId)
+            {
+                return userSteamId;
+            }
+
+            foreach (var client in connectedClients)
+            {
+                if (accountId == client.Value.steamId.AccountId)
+                {
+                    return client.Value.steamId;
+                }
+            }
+
+            foreach (var transport in transportConnections)
+            {
+                if (accountId == transport.Value.SteamId.AccountId)
+                {
+                    return transport.Value.SteamId;
+                }
+            }
+
+            return new SteamId();
+        }
+
+        public ulong GetClientId(SteamId steamId)
         {
             if (steamId == userSteamId)
             {
@@ -427,18 +453,13 @@ namespace Netcode.Transports.Facepunch
                 {
                     return client.Key;
                 }
-
-                if (steamId == client.Value.steamId.AccountId)
-                {
-                    return client.Key;
-                }
             }
 
             Debug.LogError($"Failed to get clientId for steamID {steamId}");
             return ulong.MaxValue;
         }
 
-        public ulong GetTransportId(ulong steamId)
+        public ulong GetTransportId(SteamId steamId)
         {
             if (steamId == userSteamId)
             {
@@ -453,11 +474,6 @@ namespace Netcode.Transports.Facepunch
             foreach (var transport in transportConnections)
             {
                 if (steamId == transport.Value.SteamId)
-                {
-                    return transport.Key;
-                }
-
-                if (steamId == transport.Value.SteamId.AccountId)
                 {
                     return transport.Key;
                 }
