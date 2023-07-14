@@ -409,14 +409,8 @@ namespace Netcode.Transports.Facepunch
             return new SteamId();
         }
 
-        public ulong GetClientId(SteamId steamId)
+        public ulong GetClientId(ulong steamId)
         {
-            if (!steamId.IsValid)
-            {
-                Debug.LogError("Invalid SteamId");
-                return ulong.MaxValue;
-            }
-
             if (steamId == userSteamId)
             {
                 return NetworkManager.Singleton.LocalClientId;
@@ -444,14 +438,8 @@ namespace Netcode.Transports.Facepunch
             return ulong.MaxValue;
         }
 
-        public ulong GetTransportId(SteamId steamId)
+        public ulong GetTransportId(ulong steamId)
         {
-            if (!steamId.IsValid)
-            {
-                Debug.LogError("Invalid SteamId");
-                return ulong.MaxValue;
-            }
-
             if (steamId == userSteamId)
             {
                 return NetworkManager.Singleton.LocalClientId;
