@@ -100,6 +100,7 @@ namespace Netcode.Transports.Facepunch
 
         public override void DisconnectLocalClient()
         {
+            targetSteamId = default;
             foreach (var connectionManager in transportConnections.Values)
             {
                 connectionManager.Connection.Close();
