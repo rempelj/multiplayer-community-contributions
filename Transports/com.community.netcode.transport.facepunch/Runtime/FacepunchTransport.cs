@@ -20,7 +20,7 @@ namespace Netcode.Transports.Facepunch
         }
 
         private SocketManager socketManager;
-        private Dictionary<ulong, FacepunchConnectionManager> connectionManagers;
+        private Dictionary<ulong, FacepunchConnectionManager> transportConnections;
         private Dictionary<ulong, Client> connectedClients;
 
         [Space]
@@ -100,7 +100,7 @@ namespace Netcode.Transports.Facepunch
 
         public override void DisconnectLocalClient()
         {
-            foreach (var connectionManager in connectionManagers.Values)
+            foreach (var connectionManager in transportConnections.Values)
             {
                 connectionManager.Connection.Close();
             }
@@ -137,7 +137,7 @@ namespace Netcode.Transports.Facepunch
 
         public override void Initialize()
         {
-            connectionManagers = new Dictionary<ulong, FacepunchConnectionManager>();
+            transportConnections = new Dictionary<ulong, FacepunchConnectionManager>();
             connectedClients = new Dictionary<ulong, Client>();
         }
 
@@ -163,12 +163,12 @@ namespace Netcode.Transports.Facepunch
                     Debug.Log($"[{nameof(FacepunchTransport)}] - Shutting down.");
                 }
 
-                foreach (var connectionManager in connectionManagers.Values)
+                foreach (var connectionManager in transportConnections.Values)
                 {
                     connectionManager.Close();
                 }
 
-                connectionManagers.Clear();
+                transportConnections.Clear();
                 socketManager?.Close();
             }
             catch (Exception e)
@@ -192,13 +192,13 @@ namespace Netcode.Transports.Facepunch
 
             if (clientId == ServerClientId)
             {
-                connectionManagers[ServerClientId]?.Connection.SendMessage((IntPtr) buffer, data.Count, sendType);
+                transportConnections[ServerClientId]?.Connection.SendMessage((IntPtr) buffer, data.Count, sendType);
             }
             else if (connectedClients.TryGetValue(clientId, out var client))
             {
                 client.connection.SendMessage((IntPtr) buffer, data.Count, sendType);
             }
-            else if (connectionManagers.TryGetValue(clientId, out var transport))
+            else if (transportConnections.TryGetValue(clientId, out var transport))
             {
                 transport.Connection.SendMessage((IntPtr) buffer, data.Count, sendType);
             }
@@ -212,7 +212,7 @@ namespace Netcode.Transports.Facepunch
         public override NetworkEvent PollEvent(out ulong clientId, out ArraySegment<byte> payload,
             out float receiveTime)
         {
-            foreach (var connectionManager in connectionManagers.Values)
+            foreach (var connectionManager in transportConnections.Values)
             {
                 connectionManager.Receive();
             }
@@ -233,7 +233,7 @@ namespace Netcode.Transports.Facepunch
             }
 
             var conn = new FacepunchConnectionManager(this, targetSteamId);
-            connectionManagers.Add(ServerClientId, conn);
+            transportConnections.Add(ServerClientId, conn);
             conn.Connect();
 
             return true;
@@ -372,14 +372,7 @@ namespace Netcode.Transports.Facepunch
             var connection = hostlessConnection.Connection;
             ulong transportId = connection.Id;
 
-            connectionManagers.Add(transportId, hostlessConnection);
-            /*
-            connectedClients.Add(clientId, new Client
-            {
-                connection = connection,
-                steamId = steamId
-            });
-            */
+            transportConnections.Add(transportId, hostlessConnection);
 
             Debug.Log($"FacepunchTransport.ConnectHostlessPeer - steamId: {steamId}, transportId: {transportId}");
 
@@ -408,7 +401,7 @@ namespace Netcode.Transports.Facepunch
                 return client.steamId;
             }
 
-            if (connectionManagers.TryGetValue(clientId, out var transport))
+            if (transportConnections.TryGetValue(clientId, out var transport))
             {
                 return transport.SteamId;
             }
@@ -440,6 +433,11 @@ namespace Netcode.Transports.Facepunch
                 {
                     return client.Key;
                 }
+
+                if (steamId == client.Value.steamId.AccountId)
+                {
+                    return client.Key;
+                }
             }
 
             Debug.LogError($"Failed to get clientId for steamID {steamId}");
@@ -464,11 +462,16 @@ namespace Netcode.Transports.Facepunch
                 return ServerClientId;
             }
 
-            foreach (var client in connectionManagers)
+            foreach (var transport in transportConnections)
             {
-                if (steamId == client.Value.SteamId)
+                if (steamId == transport.Value.SteamId)
                 {
-                    return client.Key;
+                    return transport.Key;
+                }
+
+                if (steamId == transport.Value.SteamId.AccountId)
+                {
+                    return transport.Key;
                 }
             }
 
