@@ -237,6 +237,12 @@ namespace Netcode.Transports.Facepunch
             transportConnections.Add(ServerClientId, conn);
             conn.Connect();
 
+            connectedClients.Add(conn.Connection.Id, new Client
+            {
+                connection = conn.Connection,
+                steamId = conn.SteamId
+            });
+
             return true;
         }
 
