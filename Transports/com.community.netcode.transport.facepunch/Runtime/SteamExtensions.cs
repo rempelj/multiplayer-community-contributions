@@ -16,13 +16,13 @@ namespace Steamworks
         public static void OpenStoreOverlay(AppId id, OverlayToStoreFlag overlayToStoreFlag)
         {
             // Get SteamFriends.Internal
-            var steamFriendsType = typeof(SteamFriends);
+            var clientClassType = typeof(SteamFriends);
             var internalProperty =
-                steamFriendsType.GetProperty("Internal", BindingFlags.NonPublic | BindingFlags.Static);
+                clientClassType.GetProperty("Internal", BindingFlags.NonPublic | BindingFlags.Static);
             var internalValue = internalProperty.GetValue(null);
             var internalType = internalValue.GetType();
 
-            // Convert the OverlayToStoreFlag
+            // Get the OverlayToStoreFlag
             var overlayToStoreFlagType = internalType.Assembly.GetType("Steamworks.OverlayToStoreFlag");
             var flagValue = (int) overlayToStoreFlag;
             var flag = Enum.ToObject(overlayToStoreFlagType, flagValue);
