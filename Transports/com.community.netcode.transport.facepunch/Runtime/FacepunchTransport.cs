@@ -386,6 +386,25 @@ namespace Netcode.Transports.Facepunch
             return transportId;
         }
 
+        public void DisconnectHostlessPeer(ulong transportId)
+        {
+            if (transportConnections.TryGetValue(transportId, out var user))
+            {
+                user.Close();
+                transportConnections.Remove(transportId);
+
+                if (LogLevel <= LogLevel.Developer)
+                {
+                    Debug.Log($"[{nameof(FacepunchTransport)}] - Disconnecting peer with ID {transportId}.");
+                }
+            }
+            else if (LogLevel <= LogLevel.Normal)
+            {
+                Debug.LogWarning(
+                    $"[{nameof(FacepunchTransport)}] - Failed to disconnect peer with ID {transportId}, client not connected.");
+            }
+        }
+
         public void SetSteamAppID(uint id)
         {
             steamAppId = id;
