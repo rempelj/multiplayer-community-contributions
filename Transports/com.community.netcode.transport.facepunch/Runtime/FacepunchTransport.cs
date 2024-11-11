@@ -388,6 +388,9 @@ namespace Netcode.Transports.Facepunch
 
         public void DisconnectHostlessPeer(ulong transportId)
         {
+            InvokeOnTransportEvent(NetworkEvent.Disconnect, GetSteamIdForConnection(transportId), default,
+                Time.realtimeSinceStartup);
+
             if (transportConnections.TryGetValue(transportId, out var user))
             {
                 user.Close();
