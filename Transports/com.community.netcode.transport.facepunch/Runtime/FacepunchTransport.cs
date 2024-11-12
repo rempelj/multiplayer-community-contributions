@@ -11,21 +11,6 @@ namespace Netcode.Transports.Facepunch
 {
     using SocketConnection = Connection;
 
-    public class HackSocketManager : SocketManager
-    {
-        public override void OnConnectionChanged(Connection connection, ConnectionInfo info)
-        {
-            if (info.State == ConnectionState.None)
-            {
-                Debug.LogError("Ignoring ConnectionState.None");
-            }
-            else
-            {
-                base.OnConnectionChanged(connection, info);
-            }
-        }
-    }
-
     public class FacepunchTransport : NetworkTransport, IConnectionManager, ISocketManager
     {
         private class Client
@@ -34,7 +19,7 @@ namespace Netcode.Transports.Facepunch
             public SocketConnection connection;
         }
 
-        private HackSocketManager socketManager;
+        private SocketManager socketManager;
         private Dictionary<ulong, FacepunchConnectionManager> transportConnections;
         private Dictionary<ulong, Client> connectedClients;
 
@@ -186,8 +171,6 @@ namespace Netcode.Transports.Facepunch
 
                 transportConnections.Clear();
                 socketManager?.Close();
-                socketManager?.Connected.Clear();
-                socketManager?.Connecting.Clear();
             }
             catch (Exception e)
             {
@@ -270,7 +253,7 @@ namespace Netcode.Transports.Facepunch
                 Debug.Log($"[{nameof(FacepunchTransport)}] - Starting as server.");
             }
 
-            socketManager = SteamNetworkingSockets.CreateRelaySocket<HackSocketManager>();
+            socketManager = SteamNetworkingSockets.CreateRelaySocket<SocketManager>();
             socketManager.Interface = this;
             return true;
         }
