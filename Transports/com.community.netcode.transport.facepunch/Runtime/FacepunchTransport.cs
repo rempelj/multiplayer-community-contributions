@@ -319,7 +319,7 @@ namespace Netcode.Transports.Facepunch
             if (LogLevel <= LogLevel.Developer)
             {
                 Debug.Log(
-                    $"[{nameof(FacepunchTransport)}] - Accepting connection from SteamId:{info.Identity.SteamId}, TransportId:{GetTransportId(info.Identity.SteamId)}. ({result})");
+                    $"[{nameof(FacepunchTransport)}] - Accepting connection from SteamId:{info.Identity.SteamId}. ({result})");
             }
         }
 
@@ -338,13 +338,13 @@ namespace Netcode.Transports.Facepunch
                 if (LogLevel <= LogLevel.Developer)
                 {
                     Debug.Log(
-                        $"[{nameof(FacepunchTransport)}] - Connected with user SteamId:{info.Identity.SteamId}, TransportId:{GetTransportId(info.Identity.SteamId)}, ConnectionId:{connection.Id}. ({info.State})");
+                        $"[{nameof(FacepunchTransport)}] - Connected with user SteamId:{info.Identity.SteamId}, ConnectionId:{connection.Id}. ({info.State})");
                 }
             }
             else if (LogLevel <= LogLevel.Normal)
             {
                 Debug.LogWarning(
-                    $"[{nameof(FacepunchTransport)}] - Failed to connect client SteamId:{info.Identity.SteamId}, TransportId:{GetTransportId(info.Identity.SteamId)}, ConnectionId:{connection.Id}, client already connected. ({info.State})");
+                    $"[{nameof(FacepunchTransport)}] - Failed to connect client SteamId:{info.Identity.SteamId}, ConnectionId:{connection.Id}, client already connected. ({info.State})");
             }
         }
 
@@ -522,6 +522,14 @@ namespace Netcode.Transports.Facepunch
                 if (steamId == transport.Value.SteamId)
                 {
                     return transport.Value.ConnectionInfo.State.ToString();
+                }
+            }
+
+            foreach (var transport in connectedClients)
+            {
+                if (steamId == transport.Value?.steamId)
+                {
+                    return "Connected";
                 }
             }
 
