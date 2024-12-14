@@ -357,7 +357,7 @@ namespace Netcode.Transports.Facepunch
             if (LogLevel <= LogLevel.Developer)
             {
                 Debug.Log(
-                    $"[{nameof(FacepunchTransport)}] - Disconnected user SteamId:{info.Identity.SteamId}, TransportId:{GetTransportId(info.Identity.SteamId)}, ConnectionId:{connection.Id} ({info.State})");
+                    $"[{nameof(FacepunchTransport)}] - Disconnected user SteamId:{info.Identity.SteamId}, ConnectionId:{connection.Id} ({info.State})");
             }
         }
 
