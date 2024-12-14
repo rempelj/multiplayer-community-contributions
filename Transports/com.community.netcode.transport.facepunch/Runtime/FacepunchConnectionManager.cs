@@ -14,19 +14,22 @@ public class FacepunchConnectionManager : IConnectionManager
     private LogLevel LogLevel => NetworkManager.Singleton.LogLevel;
 
     public Connection Connection => connectionManager.Connection;
+    public ConnectionInfo ConnectionInfo => connectionManager.ConnectionInfo;
+
     public SteamId SteamId { get; }
 
     public FacepunchConnectionManager(FacepunchTransport facepunchTransport, SteamId steamId)
     {
         this.facepunchTransport = facepunchTransport;
-        this.SteamId = steamId;
+        SteamId = steamId;
     }
 
     void IConnectionManager.OnConnecting(ConnectionInfo info)
     {
         if (LogLevel <= LogLevel.Developer)
         {
-            Debug.Log($"[{nameof(FacepunchTransport)}] - Connecting with Steam user {info.Identity.SteamId}.");
+            Debug.Log(
+                $"[{nameof(FacepunchTransport)}] - Connecting with user SteamId:{info.Identity.SteamId}. ({info.State})");
         }
     }
 
@@ -37,7 +40,8 @@ public class FacepunchConnectionManager : IConnectionManager
 
         if (LogLevel <= LogLevel.Developer)
         {
-            Debug.Log($"[{nameof(FacepunchTransport)}] - Connected with Steam user {info.Identity.SteamId}.");
+            Debug.Log(
+                $"[{nameof(FacepunchTransport)}] - Connected with user SteamId:{info.Identity.SteamId}, TransportId?:{clientId}. ({info.State})");
         }
     }
 
@@ -51,7 +55,8 @@ public class FacepunchConnectionManager : IConnectionManager
 
         if (LogLevel <= LogLevel.Developer)
         {
-            Debug.Log($"[{nameof(FacepunchTransport)}] - Disconnected Steam user {info.Identity.SteamId}.");
+            Debug.Log(
+                $"[{nameof(FacepunchTransport)}] - Disconnected user SteamId:{info.Identity.SteamId}, TransportId?:{clientId}. ({info.State})");
         }
     }
 

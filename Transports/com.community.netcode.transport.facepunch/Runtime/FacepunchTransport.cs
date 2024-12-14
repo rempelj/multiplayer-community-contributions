@@ -314,13 +314,13 @@ namespace Netcode.Transports.Facepunch
 
         void ISocketManager.OnConnecting(SocketConnection connection, ConnectionInfo info)
         {
+            var result = connection.Accept();
+
             if (LogLevel <= LogLevel.Developer)
             {
                 Debug.Log(
-                    $"[{nameof(FacepunchTransport)}] - Accepting connection from Steam user {info.Identity.SteamId}.");
+                    $"[{nameof(FacepunchTransport)}] - Accepting connection from SteamId:{info.Identity.SteamId}, TransportId:{GetTransportId(info.Identity.SteamId)}. ({result})");
             }
-
-            connection.Accept();
         }
 
         void ISocketManager.OnConnected(SocketConnection connection, ConnectionInfo info)
@@ -337,13 +337,14 @@ namespace Netcode.Transports.Facepunch
 
                 if (LogLevel <= LogLevel.Developer)
                 {
-                    Debug.Log($"[{nameof(FacepunchTransport)}] - Connected with Steam user {info.Identity.SteamId}.");
+                    Debug.Log(
+                        $"[{nameof(FacepunchTransport)}] - Connected with user SteamId:{info.Identity.SteamId}, TransportId:{GetTransportId(info.Identity.SteamId)}, ConnectionId:{connection.Id}. ({info.State})");
                 }
             }
             else if (LogLevel <= LogLevel.Normal)
             {
                 Debug.LogWarning(
-                    $"[{nameof(FacepunchTransport)}] - Failed to connect client with ID {connection.Id}, client already connected.");
+                    $"[{nameof(FacepunchTransport)}] - Failed to connect client SteamId:{info.Identity.SteamId}, TransportId:{GetTransportId(info.Identity.SteamId)}, ConnectionId:{connection.Id}, client already connected. ({info.State})");
             }
         }
 
@@ -355,7 +356,8 @@ namespace Netcode.Transports.Facepunch
 
             if (LogLevel <= LogLevel.Developer)
             {
-                Debug.Log($"[{nameof(FacepunchTransport)}] - Disconnected Steam user {info.Identity.SteamId}");
+                Debug.Log(
+                    $"[{nameof(FacepunchTransport)}] - Disconnected user SteamId:{info.Identity.SteamId}, TransportId:{GetTransportId(info.Identity.SteamId)}, ConnectionId:{connection.Id} ({info.State})");
             }
         }
 
@@ -381,7 +383,7 @@ namespace Netcode.Transports.Facepunch
 
             transportConnections.Add(transportId, hostlessConnection);
 
-            Debug.Log($"FacepunchTransport.ConnectHostlessPeer - steamId: {steamId}, transportId: {transportId}");
+            Debug.Log($"FacepunchTransport.ConnectHostlessPeer - SteamId:{steamId}, TransportId:{transportId}");
 
             return transportId;
         }
@@ -398,13 +400,14 @@ namespace Netcode.Transports.Facepunch
 
                 if (LogLevel <= LogLevel.Developer)
                 {
-                    Debug.Log($"[{nameof(FacepunchTransport)}] - Disconnecting peer with ID {transportId}.");
+                    Debug.Log(
+                        $"[{nameof(FacepunchTransport)}] - Disconnecting peer SteamId:{user.SteamId}, TransportId:{transportId}.");
                 }
             }
             else if (LogLevel <= LogLevel.Normal)
             {
                 Debug.LogWarning(
-                    $"[{nameof(FacepunchTransport)}] - Failed to disconnect peer with ID {transportId}, client not connected.");
+                    $"[{nameof(FacepunchTransport)}] - Failed to disconnect peer {transportId}, client not connected.");
             }
         }
 
@@ -510,6 +513,19 @@ namespace Netcode.Transports.Facepunch
 
             Debug.LogError($"Failed to get transportId for steamID {steamId}");
             return ulong.MaxValue;
+        }
+
+        public string GetConnectionStatus(SteamId steamId)
+        {
+            foreach (var transport in transportConnections)
+            {
+                if (steamId == transport.Value.SteamId)
+                {
+                    return transport.Value.ConnectionInfo.State.ToString();
+                }
+            }
+
+            return "NoConnection";
         }
 
         #endregion
