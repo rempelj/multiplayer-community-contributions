@@ -41,7 +41,7 @@ public class FacepunchConnectionManager : IConnectionManager
         if (LogLevel <= LogLevel.Developer)
         {
             Debug.Log(
-                $"[{nameof(FacepunchTransport)}] - Connected with user SteamId:{info.Identity.SteamId}, TransportId?:{clientId}. ({info.State})");
+                $"[{nameof(FacepunchTransport)}] - Connected with user SteamId:{info.Identity.SteamId}, ClientId:{clientId}. ({info.State})");
         }
     }
 
@@ -56,7 +56,7 @@ public class FacepunchConnectionManager : IConnectionManager
         if (LogLevel <= LogLevel.Developer)
         {
             Debug.Log(
-                $"[{nameof(FacepunchTransport)}] - Disconnected user SteamId:{info.Identity.SteamId}, TransportId?:{clientId}. ({info.State})");
+                $"[{nameof(FacepunchTransport)}] - Disconnected user SteamId:{info.Identity.SteamId}, ClientId:{clientId}. ({info.State})");
         }
     }
 
